@@ -13,6 +13,10 @@ setup(
         'isula/builder',
         'isula/builder_grpc',
         'isula/isulad',
-        'isula/isulad_grpc'],
-    install_requires=['grpcio'],
+        'isula/isulad_grpc',
+    ],
+    install_requires=[
+        'grpcio',
+        'cryptography',
+    ],
 )

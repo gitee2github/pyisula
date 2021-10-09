@@ -57,6 +57,11 @@ import isula.builder_grpc.control_pb2 as control__pb2
 
 | pyisula | iSulad | isula-build | CLI | 状态 |
 |  ----  |  ----  |  ----  | ---- | ----  |
+| server_version | - | Version | isula-build version | 已完成 |
+| server_info | - | Info | isula-build info | 已完成 |
+| server_healthcheck | - | HealthCheck | - | 已完成 |
+| login | - | Login | isula-build login | 已完成 |
+| logout | - | Logout | isula-build logout | 已完成 |
 | list_image | - | List | isula-build ctr-img image | 开发中 |
 | xxx | xxx | xxx | xxx | xxx|
 
