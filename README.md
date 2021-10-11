@@ -10,15 +10,21 @@ python sdk library for iSulad and isula-build
 pip install pyisula
 ```
 代码调用
-```
+```python
 from isula import client
 
+# isula-builder interfaces:
 builder_client = client.init_builder_client()
 image_list = builder_client.list_image()
 print(image_list)
 
-isulad_client = client.init_isulad_client()
-....
+# isula interfaces:
+isula_client = client.init_isulad_client()
+isula_client.list_container()
+isula_client.list_images()
+isula_client.list_volumes()
+isula_client.cri_list_images()
+...
 ```
 
 ## 如何刷新gRPC接口文件
@@ -67,5 +73,10 @@ import isula.builder_grpc.control_pb2 as control__pb2
 | inspect_manifest | - | ManifestInspect| - | 已完成 |
 | push_manifest | - | ManifestPush| - | 已完成 |
 | list_image | - | List | isula-build ctr-img image | 开发中 |
-| xxx | xxx | xxx | xxx | xxx|
-
+| list_container | containers.ContainerService/List | - | isula ps | 已完成 |
+| list_images | images.ImagesService/List | - | isula images | 已完成 |
+| list_volumes | volume.VolumeService/List | - | isula volume ls | 已完成 |
+| cri_runtime_version | runtime.v1alpha2.RuntimeService/Version | - | - | 已完成 |
+| cri_list_containers | runtime.v1alpha2.RuntimeService/ListContainers | - | - | 已完成 |
+| cri_list_images | runtime.v1alpha2.ImageService/ListImages | - | - | 已完成 |
+| xxx | xxx | xxx | xxx | xxx |

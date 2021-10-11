@@ -13,14 +13,7 @@ from isula.builder import image
 from isula.builder import manifest
 from isula.builder import system
 from isula.builder_grpc import control_pb2_grpc
-
-
-def toDict(fn):
-    def wrap(*args, **kwargs):
-        response = fn(*args, **kwargs)
-        response = MessageToDict(response)
-        return response
-    return wrap
+from isula import utils
 
 
 class Client(object):
@@ -48,7 +41,7 @@ class Client(object):
         self.__manifest = manifest.Manifest(client)
         self.__system = system.System(client)
 
-    @toDict
+    @utils.response2dict
     def server_version(self):
         '''Get the version of isuld-builder server.
 
@@ -56,7 +49,7 @@ class Client(object):
         '''
         return self.__system.version()
 
-    @toDict
+    @utils.response2dict
     def server_healthcheck(self):
         '''Get the status of isuld-builder server.
 
@@ -64,7 +57,7 @@ class Client(object):
         '''
         return self.__system.healthCheck()
 
-    @toDict
+    @utils.response2dict
     def server_info(self, verbose=False):
         '''Get the detail infomation of isuld-builder server.
 
@@ -73,7 +66,7 @@ class Client(object):
         '''
         return self.__system.info(verbose)
 
-    @toDict
+    @utils.response2dict
     def login(self, server, username, password):
         '''Login image registry
 
@@ -95,7 +88,7 @@ class Client(object):
 
         return self.__system.login(server, username, encrypted_password)
 
-    @toDict
+    @utils.response2dict
     def logout(self, server, is_all=False):
         '''Logout image registry
 
@@ -105,7 +98,7 @@ class Client(object):
         '''
         return self.__system.logout(server, is_all)
 
-    @toDict
+    @utils.response2dict
     def create_manifest(self, manifestList, manifests):
         '''Create manifest list.
 
@@ -156,6 +149,6 @@ class Client(object):
         # MultiThreadedRendezvous.details() -- show the detail info of the push action
         return self.__manifest.manifestPush(manifestList, dest, timeout)
 
-    @toDict
+    @utils.response2dict
     def list_image(self):
         return self.__image.list()
