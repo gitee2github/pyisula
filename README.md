@@ -62,6 +62,10 @@ import isula.builder_grpc.control_pb2 as control__pb2
 | server_healthcheck | - | HealthCheck | - | 已完成 |
 | login | - | Login | isula-build login | 已完成 |
 | logout | - | Logout | isula-build logout | 已完成 |
+| create_manifest | - | ManifestCreate| - | 已完成 |
+| annotate_manifest | - | ManifestAnnotate| - | 已完成 |
+| inspect_manifest | - | ManifestInspect| - | 已完成 |
+| push_manifest | - | ManifestPush| - | 已完成 |
 | list_image | - | List | isula-build ctr-img image | 开发中 |
 | xxx | xxx | xxx | xxx | xxx|
 
