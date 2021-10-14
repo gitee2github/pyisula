@@ -1,5 +1,6 @@
 import base64
 import codecs
+import json
 
 from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes
@@ -42,6 +43,8 @@ class Client(object):
         client = control_pb2_grpc.ControlStub(channel)
 
         self.__image = image.Image(client)
+        # manifest API is experimental and disabled by default in isula-build, so if you want to use these APIs,
+        # add `experimental = true` into the config file at server side first.
         self.__manifest = manifest.Manifest(client)
         self.__system = system.System(client)
 
@@ -101,6 +104,57 @@ class Client(object):
         :returns: dict -- Logout result
         '''
         return self.__system.logout(server, is_all)
+
+    @toDict
+    def create_manifest(self, manifestList, manifests):
+        '''Create manifest list.
+
+        :param manifestList(string): the manifest list name.
+        :param manifests(List[string]): a list of images which contains manifest.
+        :returns: dict -- contains the new created manifest list id.
+        '''
+        return self.__manifest.manifestCreate(manifestList, manifests)
+
+    def annotate_manifest(self, manifestList, target_manifest, arch='', os='', osFeatures=None, variant=''):
+        '''Update manifest list.
+
+        :param manifestList(string): the manifest list name.
+        :param target_manifest(string): the image which manifest will be updated.
+        :param arch(string): the architecture of the image
+        :param os(string): the operating system of the image
+        :param osFeatures(List[string]): a list of operating system features of the image
+        :param variant(string): other info of the image
+        returns: None
+        '''
+        osFeatures = [] if not osFeatures else osFeatures
+        self.__manifest.manifestAnnotate(manifestList, target_manifest, arch, os ,osFeatures, variant)
+
+    def inspect_manifest(self, manifestList):
+        '''Get create manifest list infomation.
+
+        :param manifestList(string): the manifest list name.
+        returns: dict -- the detail infomation of the specifed manifest list.
+        '''
+        encoded_response = self.__manifest.manifestInspect(manifestList)
+        return json.loads(base64.b64decode(MessageToDict(encoded_response)['data']))
+
+    def push_manifest(self, manifestList, dest, timeout=60):
+        '''Upload manifest list tot the specified registry.
+
+        :param manifestList(string): the manifest list name.
+        :param dest(string): the image registry location.
+        :param timeout(int/second): timeout. Default is 60 seconds.
+        returns: MultiThreadedRendezvous object -- a grpc async response object.
+        '''
+        # This API return a grpc multithread async reponse object, users should call the functions the object
+        # to get more info. There are some useful functions, such as:
+        # MultiThreadedRendezvous.is_active() -- returns whether the push action is active or not.
+        # MultiThreadedRendezvous.cancle() -- cancle the push action by hand.
+        # MultiThreadedRendezvous.result() -- returns the result of the push action. The thread will be block if there is no result.
+        # MultiThreadedRendezvous.running() -- returns whether the push action is running or not.
+        # MultiThreadedRendezvous.time_remaining() -- returns when the push action will be stopped by timeout mechanism.
+        # MultiThreadedRendezvous.details() -- show the detail info of the push action
+        return self.__manifest.manifestPush(manifestList, dest, timeout)
 
     @toDict
     def list_image(self):
