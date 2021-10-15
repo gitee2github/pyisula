@@ -3,6 +3,7 @@ from setuptools import setup
 
 setup(
     name='isula',
+    # Bump the version once it's ready to release a new version.
     version='0.0.2',
     author='openEuler community',
     author_email='isulad@openeuler.org',
@@ -16,7 +17,8 @@ setup(
         'isula/isulad_grpc',
     ],
     install_requires=[
-        'grpcio',
-        'cryptography',
+        'cryptography===3.3.1',
+        'grpcio===1.31.0',
+        'protobuf===3.14.0'
     ],
 )

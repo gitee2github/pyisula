@@ -1,4 +1,3 @@
-from google.protobuf.empty_pb2 import DESCRIPTOR
 from isula.builder_grpc import control_pb2
 
 
