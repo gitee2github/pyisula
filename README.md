@@ -1,21 +1,44 @@
 # pyisula
 
-#### 介绍
+## 介绍
+
 python sdk library for iSulad and isula-build
 
 ## 如何使用
 
-安装
-```
+### 安装
+
+#### 通过pypi安装（开发中）
+
+```shell
 pip install pyisula
 ```
-代码调用
+
+#### 通过RPM安装（开发中）
+
+```shell
+yum install python-pyisula
+```
+
+#### 通过源码安装
+
+```shell
+git clone https://gitee.com/openeuler/pyisula
+cd pyisula
+
+python setup.py install
+或
+pip install -e .
+```
+
+### 代码调用
+
 ```python
 from isula import client
 
 # isula-builder interfaces:
 builder_client = client.init_builder_client()
-image_list = builder_client.list_image()
+image_list = builder_client.list_images()
 print(image_list)
 
 # isula interfaces:
@@ -32,7 +55,8 @@ isula_client.cri_list_images()
 本python库通过gRPC与iSulad和isula-builder通信，采用protobuf协议。API接口文件通过grpc_tools工具、使用iSulad和isula-builder提供的proto文件自动生成。因此，当iSulad或isula-buidler API发生变动时，需要手动重新生成API接口文件，并分别同步到isula/isulad_grpc和isula/builder_grpc目录。
 
 方法如下：
-```
+
+```shell
 # iSulad的proto文件在https://gitee.com/openeuler/iSulad/tree/master/src/api/services
 # isula—build的proto文件在https://gitee.com/openeuler/isula-build/tree/master/api/services
 
@@ -51,7 +75,6 @@ import isula.builder_grpc.control_pb2 as control__pb2
 即可。
 ```
 
-
 ## 版本配套关系
 
 | pyisula | iSulad | isula-build | 状态 |
@@ -61,22 +84,36 @@ import isula.builder_grpc.control_pb2 as control__pb2
 
 ## 接口配套关系
 
-| pyisula | iSulad | isula-build | CLI | 状态 |
-|  ----  |  ----  |  ----  | ---- | ----  |
-| server_version | - | Version | isula-build version | 已完成 |
-| server_info | - | Info | isula-build info | 已完成 |
-| server_healthcheck | - | HealthCheck | - | 已完成 |
-| login | - | Login | isula-build login | 已完成 |
-| logout | - | Logout | isula-build logout | 已完成 |
-| create_manifest | - | ManifestCreate| - | 已完成 |
-| annotate_manifest | - | ManifestAnnotate| - | 已完成 |
-| inspect_manifest | - | ManifestInspect| - | 已完成 |
-| push_manifest | - | ManifestPush| - | 已完成 |
-| list_image | - | List | isula-build ctr-img image | 开发中 |
-| list_container | containers.ContainerService/List | - | isula ps | 已完成 |
-| list_images | images.ImagesService/List | - | isula images | 已完成 |
-| list_volumes | volume.VolumeService/List | - | isula volume ls | 已完成 |
-| cri_runtime_version | runtime.v1alpha2.RuntimeService/Version | - | - | 已完成 |
-| cri_list_containers | runtime.v1alpha2.RuntimeService/ListContainers | - | - | 已完成 |
-| cri_list_images | runtime.v1alpha2.ImageService/ListImages | - | - | 已完成 |
-| xxx | xxx | xxx | xxx | xxx |
+### isula-build
+
+| pyisula | isula-build | CLI |
+| ---- | ---- | ---- |
+| server_version | isula.build.v1.Control.Version | isula-build version |
+| server_info | isula.build.v1.Control.Info | isula-build info |
+| server_healthcheck | isula.build.v1.Control.HealthCheck | - |
+| login | isula.build.v1.Control.Login | isula-build login |
+| logout | isula.build.v1.Control.Logout | isula-build logout |
+| create_manifest | isula.build.v1.Control.ManifestCreate| - |
+| annotate_manifest | isula.build.v1.Control.ManifestAnnotate| - |
+| inspect_manifest | isula.build.v1.Control.ManifestInspect| - |
+| push_manifest | isula.build.v1.Control.ManifestPush| - |
+| list_images | isula.build.v1.Control.List | isula-build ctr-img images |
+| build_image | isula.build.v1.Control.Build | isula-build ctr-img build |
+| push_image | isula.build.v1.Control.Push | isula-build ctr-img push |
+| pull_image | isula.build.v1.Control.Pull | isula-build ctr-img pull |
+| remove_images | isula.build.v1.Control.Remove | isula-build ctr-img rm |
+| load_image | isula.build.v1.Control.Load | isula-build ctr-img load |
+| import_image | isula.build.v1.Control.Import | isula-build ctr-img import |
+| tag_image | isula.build.v1.Control.Tag | isula-build ctr-img tag |
+| save_image | isula.build.v1.Control.Save | isula-build ctr-img save |
+
+### iSulad
+
+| pyisula | iSulad | CLI |
+| ---- | ---- | ---- |
+| list_container | containers.ContainerService/List | isula ps |
+| list_images | images.ImagesService/List | isula images |
+| list_volumes | volume.VolumeService/List | isula volume ls |
+| cri_runtime_version | runtime.v1alpha2.RuntimeService/Version | - |
+| cri_list_containers | runtime.v1alpha2.RuntimeService/ListContainers | - |
+| cri_list_images | runtime.v1alpha2.ImageService/ListImages | - |
