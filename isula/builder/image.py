@@ -6,23 +6,44 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from isula.builder_grpc import control_pb2
 
 
-class ImageStatus(threading.Thread):
-    """Status pipes the image building process log back to client"""
-    def __init__(self, client, buildID):
-        super(ImageStatus, self).__init__()
+class ImageBuild(threading.Thread):
+    """Build the image"""
+    def __init__(self, client, buildID, buildType, contextDir, fileContent,
+                 output, buildArgs, proxy, iidfile, build_time, additionalTag,
+                 capAddList, entityID, encrypted, image_format):
+        super(ImageBuild, self).__init__()
         self.client = client
         self.buildID = buildID
-        self.result = []
+        self.buildType = buildType
+        self.contextDir = contextDir
+        self.fileContent = fileContent
+        self.output = output
+        self.buildArgs = buildArgs
+        self.proxy = proxy
+        self.iidfile = iidfile
+        self.build_time = build_time
+        self.additionalTag = additionalTag
+        self.capAddList = capAddList
+        self.entityID = entityID
+        self.encrypted = encrypted
+        self.image_format = image_format
 
     def run(self):
-        request = control_pb2.StatusRequest(buildID=self.buildID)
-        response = self.client.Status(request)
-        for message in response:
-            self.result.append(MessageToDict(message)['content'])
-
-    def get_result(self):
-        threading.Thread.join(self)
-        return self.result
+        if self.build_time:
+            buildTime = Timestamp()
+            buildTime.FromDatetime(self.build_time)
+            buildStatic = control_pb2.BuildStatic(buildTime=buildTime)
+        else:
+            buildStatic = None
+        request = control_pb2.BuildRequest(
+            buildID=self.buildID, buildType=self.buildType,
+            contextDir=self.contextDir, fileContent=self.fileContent,
+            output=self.output, buildArgs=self.buildArgs, proxy=self.proxy,
+            iidfile=self.iidfile, buildStatic=buildStatic,
+            additionalTag=self.additionalTag, capAddList=self.capAddList,
+            entityID=self.entityID, encrypted=self.encrypted,
+            format=self.image_format)
+        self.client.Build(request)
 
 
 class Image(object):
@@ -39,25 +60,15 @@ class Image(object):
               buildArgs, proxy, iidfile, build_time, additionalTag, capAddList,
               entityID, encrypted, image_format):
         """Build a new image"""
-        if build_time:
-            buildTime = Timestamp()
-            buildTime.FromDatetime(build_time)
-            buildStatic = control_pb2.BuildStatic(buildTime=buildTime)
-        else:
-            buildStatic = None
-        request = control_pb2.BuildRequest(
-            buildID=buildID, buildType=buildType, contextDir=contextDir,
-            fileContent=fileContent, output=output, buildArgs=buildArgs,
-            proxy=proxy, iidfile=iidfile, buildStatic=buildStatic,
-            additionalTag=additionalTag, capAddList=capAddList,
-            entityID=entityID, encrypted=encrypted, format=image_format)
-        
-        check_status = ImageStatus(self.client, buildID)
-        check_status.start()
-
-        response = self.client.Build(request)
-
-        return MessageToDict(response), check_status.get_result()
+        build_process = ImageBuild(self.client, buildID, buildType, contextDir,
+            fileContent, output, buildArgs, proxy, iidfile, build_time,
+            additionalTag, capAddList, entityID, encrypted, image_format)
+        build_process.start()
+        # get image building process log back to caller
+        request = control_pb2.StatusRequest(buildID=buildID)
+        response = self.client.Status(request)
+        for message in response:
+            yield MessageToDict(message)['content']
 
     def push(self, pushID, imageName, image_format):
         """Push pushes image to remote repository"""
