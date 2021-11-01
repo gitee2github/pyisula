@@ -180,9 +180,16 @@ class Client(object):
         :parma cap_list(List[(key, value)]): a list of Linux capabilities args for image building.
         :parama proxy(boolean): Whether inherit proxy environment variables from host.
         :parma encrypted(boolean): whether to encrypt buildArgs via gRPC transport.
-        :returns: tuple(dict, list) -- the build result. The dict contains image id. The list contains the build process log.
+        :returns: Iterable -- An Iterable object contains the build process log.
+
+        Example:
+
+        from isula import client
+        builder_client = client.init_builder_client()
+        for log in builder_client.build_image(*arg, **args):
+            print log
         """
-        
+
         transport, location = output.split(':', 1)
         if transport not in ['docker', 'docker-archive', 'docker-daemon',
             'oci', 'oci-archive', 'isulad', 'manifest']:
