@@ -112,8 +112,17 @@ import isula.builder_grpc.control_pb2 as control__pb2
 | pyisula | iSulad | CLI |
 | ---- | ---- | ---- |
 | list_container | containers.ContainerService/List | isula ps |
-| list_images | images.ImagesService/List | isula images |
-| list_volumes | volume.VolumeService/List | isula volume ls |
 | cri_runtime_version | runtime.v1alpha2.RuntimeService/Version | - |
 | cri_list_containers | runtime.v1alpha2.RuntimeService/ListContainers | - |
 | cri_list_images | runtime.v1alpha2.ImageService/ListImages | - |
+| list_images | images.ImagesService/List | isula images |
+| delete_image | images.ImagesService/Delete | isula rmi |
+| load_image | images.ImagesService/Load | isula load |
+| inspect_image | images.ImagesService/Inspect | isula inspect |
+| tag_image | images.ImagesService/Tag | isula tag |
+| import_image | images.ImagesService/Import | isula import |
+| login | images.ImagesService/Login | isula login |
+| logout | images.ImagesService/Logout | isula logout |
+| list_volumes | volume.VolumeService/List | isula volume ls |
+| remove_volume | volume.VolumeService/Remove | isula volume rm |
+| prune_volume | volume.VolumeService/Prune | isula volume prune |
