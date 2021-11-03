@@ -1,4 +1,7 @@
 import json
+
+from google.protobuf.json_format import MessageToDict
+
 from isula.isulad_grpc import container_pb2
 
 
@@ -6,7 +9,7 @@ class Container(object):
     def __init__(self, client):
         self.client = client
 
-    def create(self, container_id, rootfs, image, runtime, hostconfig,
+    def create(self, container_id, image, rootfs, runtime, hostconfig,
                customconfig):
         request = container_pb2.CreateRequest(id=container_id, rootfs=rootfs,
                                               image=image, runtime=runtime,
@@ -28,11 +31,12 @@ class Container(object):
             request, metadata=[('username', '0'), ('tls_mode', '0')])
         return response
 
-    def remote_start(self, stdin, finish):
+    def remote_start(self, container_id, stdin, finish):
         request = container_pb2.RemoteStartRequest(stdin=stdin, finish=finish)
         response = self.client.RemoteStart(
-            request, metadata=[('username', '0'), ('tls_mode', '0')])
-        return response
+            request, metadata=[('username', '0'), ('tls_mode', '0'), ('container-id', container_id)])
+        for message in response:
+            yield message
 
     def top(self, container_id, args):
         request = container_pb2.TopRequest(id=container_id, args=args)
@@ -105,7 +109,8 @@ class Container(object):
                                               until=until, storeOnly=store_only)
         response = self.client.Events(
             request, metadata=[('username', '0'), ('tls_mode', '0')])
-        return response
+        for message in response:
+            yield MessageToDict(message)
 
     def container_exec(self, container_id, tty, open_stdin, attach_stdin,
                        attach_stdout, attach_stderr, stdin, stdout, stderr,
@@ -124,7 +129,8 @@ class Container(object):
         request = container_pb2.RemoteExecRequest(cmd=cmd, finish=finish)
         response = self.client.RemoteExec(
             request, metadata=[('username', '0'), ('tls_mode', '0')])
-        return response
+        for message in response:
+            yield message
 
     def version(self):
         request = container_pb2.VersionRequest()
@@ -149,7 +155,8 @@ class Container(object):
         request = container_pb2.AttachRequest(stdin=stdin, finish=finish)
         response = self.client.Attach(
             request, metadata=[('username', '0'), ('tls_mode', '0')])
-        return response
+        for message in response:
+            yield message
 
     def restart(self, container_id, timeout):
         request = container_pb2.RestartRequest(id=container_id,
@@ -158,8 +165,8 @@ class Container(object):
             request, metadata=[('username', '0'), ('tls_mode', '0')])
         return response
 
-    def export(self, container_id, file):
-        request = container_pb2.ExportRequest(id=container_id, file=file)
+    def export(self, container_id, export_file):
+        request = container_pb2.ExportRequest(id=container_id, file=export_file)
         response = self.client.Export(
             request, metadata=[('username', '0'), ('tls_mode', '0')])
         return response
@@ -169,14 +176,16 @@ class Container(object):
             id=container_id, runtime=runtime, srcpath=srcpath)
         response = self.client.CopyFromContainer(
             request, metadata=[('username', '0'), ('tls_mode', '0')])
-        return response
+        for message in response:
+            yield message
 
     def copy_to_container(self, data):
         request = container_pb2.CopyToContainerRequest(data=data)
         response = self.client.CopyToContainer(
             request, metadata=[('username', '0'), ('tls_mode', '0'),
                                ('isulad-copy-to-container', )])
-        return response
+        for message in response:
+            yield message
 
     def rename(self, oldname, newname):
         request = container_pb2.RenameRequest(oldname=oldname, newname=newname)
@@ -191,7 +200,8 @@ class Container(object):
             timestamps=timestamps, follow=follow, tail=tail, details=details)
         response = self.client.Logs(
             request, metadata=[('username', '0'), ('tls_mode', '0')])
-        return response
+        for message in response:
+            yield message
 
     def resize(self, container_id, suffix, height, width):
         """ Resize a container"""

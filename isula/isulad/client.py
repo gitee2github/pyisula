@@ -1,8 +1,10 @@
+import base64
 import inspect
 import signal
-
-import grpc
 import os
+
+from google.protobuf.json_format import MessageToDict
+import grpc
 
 from isula.isulad import container
 from isula.isulad import cri
@@ -51,7 +53,7 @@ class Client(object):
         cc_argspec = inspect.getfullargspec(
             container.ContainerConfig.__init__).args
         cc_args = {}
-        for k, v in kwargs:
+        for k, v in kwargs.items():
             if k in hc_argspec:
                 hc_args[k] = v
             if k in cc_argspec:
@@ -62,6 +64,7 @@ class Client(object):
         return self._container.create(container_id, container_image, rootfs,
                                       runtime, hostconfig, customconfig)
 
+    @utils.response2dict
     def start_container(self, container_id, stdin=None, attach_stdin=False,
                         stdout=None, attach_stdout=False, stderr=None,
                         attach_stderr=False):
@@ -74,30 +77,38 @@ class Client(object):
         :param attach_stdout: Attach stdout or not
         :param stderr: FIFO for stderr stream
         :param attach_stderr: Attach stderr or not
-        :return: exit status and message
+        :return: return the error code and message if start failed, otherwise return an empty dict.
         """
         return self._container.start(container_id, stdin, attach_stdin, stdout,
                                      attach_stdout, stderr, attach_stderr)
 
-    def remote_start_container(self, stdin=None, finish=False):
+    def remote_start_container(self, container_id, stdin=None, finish=False):
         """ Start a container remotely
 
+        :param container_id: identifier of container
         :param stdin: FIFO for stdin stream
         :param finish:
         :return:
         """
-        return self._container.remote_start(stdin, finish)
+        #return self._container.remote_start(container_id, stdin, finish)
+        raise NotImplementedError
 
-    @utils.response2dict
     def container_top(self, container_id, args=None):
         """ Display the running processes of a container
 
         :param container_id: identifier of container
-        :param args:
-        :return:
+        :param args(List(string)): the parameter for linux command `ps`
+        :return: the linux command `ps` information in container.
         """
-        return self._container.top(container_id, args)
+        if not isinstance(args, list):
+            raise Exception("The args should be a list contains ps parameter, such as ['-s', '-q']")
+        response = MessageToDict(self._container.top(container_id, args))
+        response['titles'] = base64.b64decode(response['titles']).decode()
+        for i in range(len(response['processes'])):
+            response['processes'][i] = base64.b64decode(response['processes'][i]).decode()
+        return response
 
+    @utils.response2dict
     def stop_container(self, container_id, force=False, timeout=None):
         """ Stop a container
 
@@ -105,42 +116,46 @@ class Client(object):
         :param force: Enforce stop or not
         :param timeout: Timeout in seconds to wait for the container to
                 stop before sending a ``SIGKILL``.
-        :return:
+        :return: return the error code and message if stop failed, otherwise return an empty dict.
         """
         return self._container.stop(container_id, force, timeout)
 
+    @utils.response2dict
     def kill_container(self, container_id, k_signal=signal.SIGKILL):
         """ Kill a running container
 
         :param container_id: Identifier of a container
         :param k_signal: The signal to send. Defaults to ``SIGKILL``
-        :return: exit code
+        :return: return the error code and message if kill failed, otherwise return an empty dict.
         """
         return self._container.kill(container_id, k_signal)
 
+    @utils.response2dict
     def delete_container(self, container_id, force=False, volumes=False):
         """ Delete a container
 
         :param container_id: Identifier of a container
         :param force: Delete a container forcibly
         :param volumes: Delete volumes attached to a container
-        :return: exit status and message
+        :return: return the error code and message if delete failed, otherwise return the deleted container id.
         """
         return self._container.delete(container_id, force, volumes)
 
+    @utils.response2dict
     def pause_container(self, container_id):
         """ Pause a running container
 
         :param container_id: identifier of container
-        :return: exit status and message
+        :return: return the error code and message if pause failed, otherwise return an empty dict.
         """
         return self._container.pause(container_id)
 
+    @utils.response2dict
     def resume_container(self, container_id):
         """ Resume a paused container
 
         :param container_id: identifier of container
-        :return: exit status and message
+        :return: return the error code and message if resume failed, otherwise return an empty dict.
         """
         return self._container.resume(container_id)
 
@@ -159,9 +174,14 @@ class Client(object):
     def list_containers(self, filters=None, is_all=False):
         """ List containers
 
-        :param filters(list): Filter output based on conditions provided
+        :param filters(list or dict): Filter output based on conditions provided
         :param all(boolean): Display all containers (default shows just running)
         :returns: dict -- list of containers' info
+
+        The filters can be a dict like:
+            filters = {'id': 'xxx'}
+        or a list like:
+            filters = [('id', xxx)]
         """
         return self._container.list(filters, is_all)
 
@@ -169,23 +189,23 @@ class Client(object):
     def stats_containers(self, containers=None, all_containers=False):
         """ Display a live stream of container(s) resource usage statistics
 
-        :param containers: A list of containers' ID (default shows all running containers)
+        :param containers(List(string)): A list of containers' ID (default shows all running containers)
         :param all_containers: show all containers or not
         :return: resource usage statistics of containers
         """
         return self._container.stats(containers, all_containers)
 
+    @utils.response2dict
     def wait_container(self, container_id, condition=None):
         """ Block until one or more containers stop
 
         :param container_id: identifier of container
         :param condition: wait until container REMOVED or STOPED
-        :return: exit code
+        :return: return the error code and message if wait failed, otherwise return an empty dict.
         """
         return self._container.wait(container_id, condition)
 
-    @utils.response2dict
-    def container_events(self, container_id, since=None, until=None,
+    def container_events(self, container_id=None, since=None, until=None,
                          store_only=False):
         """ Get real time events from the server
 
@@ -193,10 +213,18 @@ class Client(object):
         :param since: time when the events of a container since from
         :param until: time when the evens of a container until
         :param store_only:
-        :return:
+        :return: Iterable -- An Iterable object contains container events.
+
+        example:
+            import isula
+            client = isula.init_isulad_client()
+            for event in client.container_events('xxx')
+                print(event)
+        Note: The for loop will be blocked forever unless the request is canceld by hand.
         """
         return self._container.events(container_id, since, until, store_only)
 
+    @utils.response2dict
     def container_exec(self, container_id, argv, tty=None, open_stdin=False,
                        attach_stdin=False, attach_stdout=False,
                        attach_stderr=False, stdin=None, stdout=None,
@@ -219,14 +247,13 @@ class Client(object):
         :param suffix:
         :param workdir: Working directory inside the container, supported only
         when runtime is lcr
-        :return: exit status and message
+        :return: return the error code and message if exec failed, otherwise return an empty dict.
         """
         return self._container.container_exec(
             container_id, tty, open_stdin, attach_stdin, attach_stdout,
             attach_stderr, stdin, stdout, stderr, argv, env, user, suffix,
             workdir)
 
-    @utils.response2dict
     def container_remote_exec(self, cmd, finish=None):
         """
 
@@ -234,7 +261,8 @@ class Client(object):
         :param finish: wait until finish or not
         :return:
         """
-        return self._container.remote_exec(cmd, finish)
+        #return self._container.remote_exec(cmd, finish)
+        raise NotImplementedError
 
     @utils.response2dict
     def isulad_version(self):
@@ -258,18 +286,17 @@ class Client(object):
 
         :param container_id: identifier of container
         :param kwargs:
-        :return:
+        :return: return the error code and message if update failed, otherwise return the container id.
         """
         hc_argspec = inspect.getfullargspec(container.HostConfig.__init__).args
         hc_args = {}
-        for k, v in kwargs:
+        for k, v in kwargs.items():
             if k in hc_argspec:
                 hc_args[k] = v
         hostconfig = container.HostConfig(**hc_args).to_json()
 
         return self._container.update(container_id, hostconfig)
 
-    @utils.response2dict
     def attach_container(self, stdin, finish=None):
         """ Attach to a running container
 
@@ -277,26 +304,28 @@ class Client(object):
         :param finish:
         :return: exit status and message
         """
-        return self._container.attach(stdin, finish)
+        return self._container.attach(stdin.encode(), finish)
 
+    @utils.response2dict
     def restart_container(self, container_id, timeout=None):
         """ Restart a container
 
         :param container_id: identifier of container
         :param timeout: timeout in seconds
-        :return: exit status and message
+        :return: return the error code and message if restart failed, otherwise return an empty dict.
         """
         return self._container.restart(container_id, timeout)
 
     @utils.response2dict
-    def export_container(self, container_id, file):
+    def export_container(self, container_id, file_location):
         """ Export a container to an image file
 
         :param container_id: identifier of container
-        :param file: file name to save container image
+        :param file_location: file name to save container image
         :return: exit status and message
         """
-        return self._container.export(container_id, file)
+        file_location = os.path.abspath(file_location)
+        return self._container.export(container_id, file_location)
 
     def copy_from_container(self, container_id, srcpath, runtime=None):
         """ Copy data from a container
@@ -309,7 +338,6 @@ class Client(object):
         return self._container.copy_from_container(container_id, runtime,
                                                    srcpath)
 
-    @utils.response2dict
     def copy_to_container(self, data):
         """ Copy data into a container
 
@@ -318,12 +346,13 @@ class Client(object):
         """
         return self._container.copy_to_container(data)
 
+    @utils.response2dict
     def rename_container(self, oldname, newname):
         """ Rename a container
 
         :param oldname: old name of container
         :param newname: new name of container
-        :return: exit status and message
+        :return: return the error code and message if rename failed, otherwise return the container id.
         """
         return self._container.rename(oldname, newname)
 
@@ -347,6 +376,7 @@ class Client(object):
         return self._container.logs(container_id, runtime, since, until,
                                     timestamps, follow, tail, details)
 
+    @utils.response2dict
     def resize_container(self, container_id, suffix=None, height=None,
                          width=None):
         """ Resize the tty session.
@@ -355,7 +385,7 @@ class Client(object):
         :param suffix:
         :param height: Height of tty session
         :param width: Width of tty session
-        :return: exit status and message
+        :return: return the error code and message if resize failed, otherwise return the container id.
         """
         return self._container.resize(container_id, suffix, height, width)
 
@@ -387,12 +417,14 @@ class Client(object):
         return self._cri_images.list_images(query_filter)
 
     @utils.response2dict
-    def list_images(self, filters={}):
+    def list_images(self, filters=None):
         """ [IMAGE] List images
 
         :param filters(list): Filter output based on conditions provided
         :return: dict -- list of images' info
         """
+        if not filters:
+            filters = {}
         for k in filters.keys():
             if k not in ["dangling", "label", "before", "since", "reference"]:
                 raise Exception("Only supports the following fields - dangling, label, before, since, reference")
@@ -410,30 +442,30 @@ class Client(object):
         return self._images.delete(name, force)
 
     @utils.response2dict
-    def load_image(self, file, type, tag=''):
+    def load_image(self, image_file, image_type, tag=''):
         """ [IMAGE] Import the image exported using the save command.
 
-        :param name(string): The image file that will been loaded
-        :param type(string): The type of image - oci embedded external
+        :param image_file(string): The image file that will been loaded
+        :param image_type(string): The type of image - oci embedded external
         :param tag(string): The tag of image that will been named
         :returns: dict - the result of the operation.
         """
         # TODO(ffrog): check whether the type and tag meet the corresponding relationship
-        if type not in ["oci", "embedded", "external"]:
+        if image_type not in ["oci", "embedded", "external"]:
             raise Exception("Only supports the following type - oci, embedded, external")
-        file = os.path.abspath(file)
-        return self._images.load(file, type, tag)
+        image_file = os.path.abspath(image_file)
+        return self._images.load(image_file, image_type, tag)
 
     @utils.response2dict
-    def inspect_image(self, id, bformat=False, timeout=120):
+    def inspect_image(self, image_id, bformat=False, timeout=120):
         """ [IMAGE] Get the metadata of image
 
-        :param id(string): The image id
+        :param image_id(string): The image id
         :param bformat(bool): ?
         :param timeout(int): Maximum waiting time
         :returns: dict - the result of the operation.
         """
-        return self._images.inspect(id, bformat, timeout)
+        return self._images.inspect(image_id, bformat, timeout)
 
     @utils.response2dict
     def tag_image(self, src_name, dest_name):
@@ -446,37 +478,41 @@ class Client(object):
         return self._images.tag(src_name, dest_name)
 
     @utils.response2dict
-    def import_image(self, file, tag):
+    def import_image(self, image_file, tag):
         """ [IMAGE] Import a new image
 
-        :param file(string): The file name which been created by command export
+        :param image_file(string): The file name which been created by command export
         :param tag(string): The tag name for image
         :returns: dict - the result of the operation.
         """
-        file = os.path.abspath(file)
-        return self._images.import_(file, tag)
+        image_file = os.path.abspath(image_file)
+        return self._images.import_(image_file, tag)
 
     @utils.response2dict
-    def login(self, username, password, server, type):
+    def login(self, username, password, server, image_type='oci'):
         """ [IMAGE] Login image registry with username and password
 
         :param username(string): The username of registry
         :param password(string): The password of username for registry
         :param server(string): The address of registry
         :param type(string): The type of image - oci embedded external
-        :returns: dict - the result of the operation.
+        :returns: dict - return the error code and message if login failed, otherwise return an empty dict.
         """
-        return self._images.login(username, password, server, type)
+        if image_type != 'oci':
+            raise Exception("Invalid image_type, only oci is supported currently")
+        return self._images.login(username, password, server, image_type)
 
     @utils.response2dict
-    def logout(self, server, type):
+    def logout(self, server, image_type='oci'):
         """ [IMAGE] Logout image registry
 
         :param server(string): The address of registry
         :param type(string): The type of image - oci embedded external
-        :returns: dict - the result of the operation.
+        :returns: dict - return the error code and message if logout failed, otherwise return an empty dict.
         """
-        return self._images.logout(server, type)
+        if image_type != 'oci':
+            raise Exception("Invalid image_type, only oci is supported currently")
+        return self._images.logout(server, image_type)
 
     @utils.response2dict
     def list_volumes(self):
