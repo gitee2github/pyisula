@@ -111,7 +111,30 @@ import isula.builder_grpc.control_pb2 as control__pb2
 
 | pyisula | iSulad | CLI |
 | ---- | ---- | ---- |
-| list_container | containers.ContainerService/List | isula ps |
+| isulad_version | containers.ContainerService/Version | isula version |
+| isulad_info | containers.ContainerService/Info | isula info |
+| list_containers | containers.ContainerService/List | isula ps |
+| create_container | containers.ContainerService/Create | isula create |
+| start_container | containers.ContainerService/Start | isula start |
+| stop_container | containers.ContainerService/Stop | isula stop |
+| update_container | containers.ContainerService/Update | isula update |
+| attach_container | containers.ContainerService/Attach | isula attach |
+| restart_container | containers.ContainerService/Restart | isula restart |
+| export_container | containers.ContainerService/Export | isula export |
+| copy_from_container | containers.ContainerService/CopyFromContainer | isula cp |
+| rename_container | containers.ContainerService/Rename | isula rename |
+| resize_container | containers.ContainerService/Resize | - |
+| kill_container | containers.ContainerService/Kill | isula kill |
+| delete_container | containers.ContainerService/Delete | isula rm |
+| pause_container | containers.ContainerService/Pause | isula pause |
+| resume_container | containers.ContainerService/Resume | isula unpause |
+| inspect_container | containers.ContainerService/Inspect | isula inspect |
+| stats_containers | containers.ContainerService/Stats | isula stats |
+| wait_container | containers.ContainerService/Wait | isula wait |
+| container_top | containers.ContainerService/Top | isula top |
+| container_events | containers.ContainerService/Events | isula events |
+| container_exec | containers.ContainerService/Exec | isula exec |
+| container_logs | containers.ContainerService/Logs | isula logs |
 | cri_runtime_version | runtime.v1alpha2.RuntimeService/Version | - |
 | cri_list_containers | runtime.v1alpha2.RuntimeService/ListContainers | - |
 | cri_list_images | runtime.v1alpha2.ImageService/ListImages | - |
@@ -126,3 +149,11 @@ import isula.builder_grpc.control_pb2 as control__pb2
 | list_volumes | volume.VolumeService/List | isula volume ls |
 | remove_volume | volume.VolumeService/Remove | isula volume rm |
 | prune_volume | volume.VolumeService/Prune | isula volume prune |
+
+### 开发中的接口
+
+| pyisula | iSulad | CLI |
+| ---- | ---- | ---- |
+| remote_start_container | - | - |
+| container_remote_exec | - | - |
+| copy_to_container | containers.ContainerService/CopyToContainer | isula cp |
