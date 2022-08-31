@@ -17,8 +17,8 @@ setup(
         'isula/isulad_grpc',
     ],
     install_requires=[
-        'cryptography===3.3.1',
-        'grpcio===1.31.0',
-        'protobuf===3.14.0'
+        'cryptography',
+        'grpcio',
+        'protobuf'
     ],
 )
